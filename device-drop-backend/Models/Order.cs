@@ -4,15 +4,15 @@ public class Order : BaseEntity
 {
     public int Id { get; set; }
     public int? UserId { get; set; }
-    public string Token { get; set; }
+    public string Token { get; set; } = string.Empty;
     public int TotalAmount { get; set; }
     public OrderStatus Status { get; set; }
     public string? PaymentId { get; set; }
-    public string Items { get; set; } 
-    public string FirstName { get; set; }
-    public string Email { get; set; }
-    public string Phone { get; set; }
-    public string Address { get; set; }
+    public string Items { get; set; } = string.Empty;
+    public string FirstName { get; set; } = string.Empty;
+    public string Email { get; set; } = string.Empty;
+    public string Phone { get; set; } = string.Empty;
+    public string Address { get; set; } = string.Empty;
     public string? Comment { get; set; }
 
     public User? User { get; set; }

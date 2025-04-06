@@ -29,6 +29,7 @@ public class CategoryController : ControllerBase
         var categories = await _context.Categories
             .Include(c => c.Products)
             .ThenInclude(p => p.Variants)
+            .ThenInclude(v => v.Color) 
             .Select(c => new CategoryDto
             {
                 Id = c.Id,
@@ -43,8 +44,16 @@ public class CategoryController : ControllerBase
                     Variants = p.Variants.Select(v => new ProductVariantDto
                     {
                         Id = v.Id,
-                        Color = v.Color,
+                        ColorId = v.ColorId,
+                        Color = new ColorDto
+                        {
+                            Id = v.Color.Id,
+                            Hex = v.Color.Hex,
+                            NameRu = v.Color.NameRu,
+                            NameEn = v.Color.NameEn
+                        },
                         Price = v.Price,
+                        SalePrice = v.SalePrice,
                         Stock = v.Stock,
                         ImageUrl = v.ImageUrl
                     }).ToList()

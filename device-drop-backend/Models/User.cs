@@ -10,7 +10,7 @@ public class User : BaseEntity
     public DateTime? Verified { get; set; }
     public string? Provider { get; set; }
     public string? ProviderId { get; set; }
-    
+
     public Cart? Cart { get; set; }
     public ICollection<Order> Orders { get; set; } = new List<Order>();
     public VerificationCode? VerificationCode { get; set; }

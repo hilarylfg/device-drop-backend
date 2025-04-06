@@ -7,6 +7,6 @@ public class CartItem : BaseEntity
     public int ProductVariantId { get; set; }
     public int Quantity { get; set; } = 1;
 
-    public Cart Cart { get; set; }
-    public ProductVariant ProductVariant { get; set; }
+    public Cart Cart { get; set; } = null!;
+    public ProductVariant ProductVariant { get; set; } = null!;
 }

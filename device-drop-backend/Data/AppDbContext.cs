@@ -10,6 +10,7 @@ public class AppDbContext : DbContext
     public DbSet<Product> Products { get; set; }
     public DbSet<ProductVariant> ProductVariants { get; set; }
     public DbSet<Cart> Carts { get; set; }
+    public DbSet<Color> Colors { get; set; }
     public DbSet<CartItem> CartItems { get; set; }
     public DbSet<Order> Orders { get; set; }
     public DbSet<VerificationCode> VerificationCodes { get; set; }
@@ -64,6 +65,13 @@ public class AppDbContext : DbContext
                 .Property(e => e.CreatedAt)
                 .HasDefaultValueSql("NOW() AT TIME ZONE 'UTC'");
             modelBuilder.Entity<Order>()
+                .Property(e => e.UpdatedAt)
+                .HasDefaultValueSql("NOW() AT TIME ZONE 'UTC'");
+            
+            modelBuilder.Entity<Color>()
+                .Property(e => e.CreatedAt)
+                .HasDefaultValueSql("NOW() AT TIME ZONE 'UTC'");
+            modelBuilder.Entity<Color>()
                 .Property(e => e.UpdatedAt)
                 .HasDefaultValueSql("NOW() AT TIME ZONE 'UTC'");
     }

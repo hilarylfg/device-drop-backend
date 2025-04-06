@@ -223,39 +223,34 @@ public static class SeedProducts
 
             var variants = new List<ProductVariant>
             {
-                new ProductVariant { ProductId = keyboard1.Id, Color = "White", Price = 4990, Stock = 40, ImageUrl = "aula_f75_1.webp" },
-                new ProductVariant { ProductId = keyboard1.Id, Color = "Beige", Price = 5490, Stock = 10, ImageUrl = "aula_f75_2.webp" },
-                new ProductVariant { ProductId = keyboard1.Id, Color = "Black", Price = 4790, Stock = 0, ImageUrl = "aula_f75_3.webp" },
-                new ProductVariant { ProductId = keyboard2.Id, Color = "Black", Price = 28990, Stock = 50, ImageUrl = "wooting_60he_1.webp" },
-                new ProductVariant { ProductId = keyboard5.Id, Color = "Grey", Price = 8990, Stock = 30, ImageUrl = "keychron_k6_1.webp" },
-                new ProductVariant { ProductId = keyboard6.Id, Color = "Black", Price = 6490, Stock = 20, ImageUrl = "mad68_r_1.webp" },
-                new ProductVariant { ProductId = keyboard3.Id, Color = "Black", Price = 14990, Stock = 15, ImageUrl = "razer_huntsman_mini_1.webp" },
-                new ProductVariant { ProductId = keyboard4.Id, Color = "Black", Price = 15990, Stock = 10, ImageUrl = "logitech_g_pro_x_keyboard_1.webp" },
-
-                new ProductVariant { ProductId = mouse1.Id, Color = "White", Price = 6290, Stock = 30, ImageUrl = "vxe_major+_1.webp" },
-                new ProductVariant { ProductId = mouse1.Id, Color = "Black", Price = 6290, Stock = 30, ImageUrl = "vxe_major+_2.webp" },
-                new ProductVariant { ProductId = mouse2.Id, Color = "Black", Price = 15990, Stock = 15, ImageUrl = "logitech_g_pro_x_superlight_1.webp" },
-                new ProductVariant { ProductId = mouse3.Id, Color = "White", Price = 17990, Stock = 10, ImageUrl = "razer_deathadder_v3_pro_1.webp" },
-                new ProductVariant { ProductId = mouse4.Id, Color = "Black", Price = 5490, Stock = 20, ImageUrl = "vgn_f1_moba_1.webp" },
-                new ProductVariant { ProductId = mouse5.Id, Color = "Black", Price = 4990, Stock = 30, ImageUrl = "steelseries_rival_3_1.webp" },
-
-                new ProductVariant { ProductId = headphones1.Id, Color = "Black", Price = 19990, Stock = 20, ImageUrl = "steelseries_arctis_pro_1.webp" },
-                new ProductVariant { ProductId = headphones2.Id, Color = "Red", Price = 14990, Stock = 25, ImageUrl = "hyperx_cloud_ii_wireless_1.webp" },
-                new ProductVariant { ProductId = headphones3.Id, Color = "Black", Price = 12990, Stock = 30, ImageUrl = "razer_blackshark_v2_1.webp" },
-                new ProductVariant { ProductId = headphones4.Id, Color = "Ivory", Price = 17990, Stock = 15, ImageUrl = "sennheiser_hd_599_1.webp" },
-
-                new ProductVariant { ProductId = mousePad1.Id, Color = "Black", Price = 2990, Stock = 50, ImageUrl = "steelseries_qck_heavy_1.webp" },
-                new ProductVariant { ProductId = mousePad2.Id, Color = "Black", Price = 3490, Stock = 40, ImageUrl = "razer_gigantus_v2_1.webp" },
-                new ProductVariant { ProductId = mousePad3.Id, Color = "Black", Price = 4990, Stock = 30, ImageUrl = "logitech_g840_1.webp" },
-                new ProductVariant { ProductId = mousePad4.Id, Color = "Black", Price = 3990, Stock = 35, ImageUrl = "corsair_mm350_1.webp" },
-
-                new ProductVariant { ProductId = microphone1.Id, Color = "Black", Price = 12990, Stock = 20, ImageUrl = "blue_yeti_1.webp" },
-                new ProductVariant { ProductId = microphone2.Id, Color = "Black", Price = 8990, Stock = 25, ImageUrl = "razer_seiren_x_1.webp" },
-                new ProductVariant { ProductId = microphone3.Id, Color = "Black", Price = 14990, Stock = 15, ImageUrl = "hyperx_quadcast_1.webp" },
-                new ProductVariant { ProductId = microphone4.Id, Color = "Black", Price = 9990, Stock = 30, ImageUrl = "audio_technica_at2020_1.webp" },
-
-                new ProductVariant { ProductId = accessory1.Id, Color = "Black", Price = 2990, Stock = 50, ImageUrl = "razer_mouse_bungee_v3_1.webp" },
-                new ProductVariant { ProductId = accessory2.Id, Color = "Black", Price = 14990, Stock = 10, ImageUrl = "logitech_g_powerplay_1.webp" }
+                new ProductVariant { ProductId = keyboard1.Id, ColorId = 2, Price = 4990, SalePrice = 4399, Stock = 40, ImageUrl = "aula_f75_1.webp" }, // White
+                new ProductVariant { ProductId = keyboard1.Id, ColorId = 12, Price = 5490, Stock = 10, ImageUrl = "aula_f75_2.webp" }, // Beige
+                new ProductVariant { ProductId = keyboard1.Id, ColorId = 1, Price = 4790, Stock = 0, ImageUrl = "aula_f75_3.webp" }, // Black
+                new ProductVariant { ProductId = keyboard2.Id, ColorId = 1, Price = 28990, Stock = 50, ImageUrl = "wooting_60he_1.webp" }, // Black
+                new ProductVariant { ProductId = keyboard5.Id, ColorId = 3, Price = 8990, Stock = 30, ImageUrl = "keychron_k6_1.webp" }, // Grey
+                new ProductVariant { ProductId = keyboard6.Id, ColorId = 1, Price = 6490, Stock = 20, ImageUrl = "mad68_r_1.webp" }, // Black
+                new ProductVariant { ProductId = keyboard3.Id, ColorId = 1, Price = 14990, Stock = 15, ImageUrl = "razer_huntsman_mini_1.webp" }, // Black
+                new ProductVariant { ProductId = keyboard4.Id, ColorId = 1, Price = 15990, Stock = 10, ImageUrl = "logitech_g_pro_x_keyboard_1.webp" }, // Black
+                new ProductVariant { ProductId = mouse1.Id, ColorId = 2, Price = 6290, Stock = 30, ImageUrl = "vxe_major+_1.webp" }, // White
+                new ProductVariant { ProductId = mouse1.Id, ColorId = 1, Price = 6290, SalePrice = 5999, Stock = 30, ImageUrl = "vxe_major+_2.webp" }, // Black
+                new ProductVariant { ProductId = mouse2.Id, ColorId = 1, Price = 15990, Stock = 15, ImageUrl = "logitech_g_pro_x_superlight_1.webp" }, // Black
+                new ProductVariant { ProductId = mouse3.Id, ColorId = 2, Price = 17990, Stock = 10, ImageUrl = "razer_deathadder_v3_pro_1.webp" }, // White
+                new ProductVariant { ProductId = mouse4.Id, ColorId = 1, Price = 5490, Stock = 20, ImageUrl = "vgn_f1_moba_1.webp" }, // Black
+                new ProductVariant { ProductId = mouse5.Id, ColorId = 1, Price = 4990, Stock = 30, ImageUrl = "steelseries_rival_3_1.webp" }, // Black
+                new ProductVariant { ProductId = headphones1.Id, ColorId = 1, Price = 19990, Stock = 20, ImageUrl = "steelseries_arctis_pro_1.webp" }, // Black
+                new ProductVariant { ProductId = headphones2.Id, ColorId = 4, Price = 14990, Stock = 25, ImageUrl = "hyperx_cloud_ii_wireless_1.webp" }, // Red
+                new ProductVariant { ProductId = headphones3.Id, ColorId = 1, Price = 12990, Stock = 30, ImageUrl = "razer_blackshark_v2_1.webp" }, // Black
+                new ProductVariant { ProductId = headphones4.Id, ColorId = 13, Price = 17990, Stock = 15, ImageUrl = "sennheiser_hd_599_1.webp" }, // Ivory
+                new ProductVariant { ProductId = mousePad1.Id, ColorId = 1, Price = 2990, Stock = 50, ImageUrl = "steelseries_qck_heavy_1.webp" }, // Black
+                new ProductVariant { ProductId = mousePad2.Id, ColorId = 1, Price = 3490, Stock = 40, ImageUrl = "razer_gigantus_v2_1.webp" }, // Black
+                new ProductVariant { ProductId = mousePad3.Id, ColorId = 1, Price = 4990, Stock = 30, ImageUrl = "logitech_g840_1.webp" }, // Black
+                new ProductVariant { ProductId = mousePad4.Id, ColorId = 1, Price = 3990, Stock = 35, ImageUrl = "corsair_mm350_1.webp" }, // Black
+                new ProductVariant { ProductId = microphone1.Id, ColorId = 1, Price = 12990, Stock = 20, ImageUrl = "blue_yeti_1.webp" }, // Black
+                new ProductVariant { ProductId = microphone2.Id, ColorId = 1, Price = 8990, Stock = 25, ImageUrl = "razer_seiren_x_1.webp" }, // Black
+                new ProductVariant { ProductId = microphone3.Id, ColorId = 1, Price = 14990, Stock = 15, ImageUrl = "hyperx_quadcast_1.webp" }, // Black
+                new ProductVariant { ProductId = microphone4.Id, ColorId = 1, Price = 9990, Stock = 30, ImageUrl = "audio_technica_at2020_1.webp" }, // Black
+                new ProductVariant { ProductId = accessory1.Id, ColorId = 1, Price = 2990, Stock = 50, ImageUrl = "razer_mouse_bungee_v3_1.webp" }, // Black
+                new ProductVariant { ProductId = accessory2.Id, ColorId = 1, Price = 14990, Stock = 10, ImageUrl = "logitech_g_powerplay_1.webp" } // Black
             };
 
             await context.ProductVariants.AddRangeAsync(variants);

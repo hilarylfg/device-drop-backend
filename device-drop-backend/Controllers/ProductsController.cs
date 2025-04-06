@@ -15,7 +15,7 @@ public class ProductsController : ControllerBase
     {
         _context = context;
     }
-    
+
     [HttpGet("{id}")]
     public async Task<IActionResult> GetProduct(int id)
     {
@@ -36,8 +36,16 @@ public class ProductsController : ControllerBase
                 Variants = p.Variants.Select(v => new ProductVariantDto
                 {
                     Id = v.Id,
-                    Color = v.Color,
+                    ColorId = v.ColorId,
+                    Color = new ColorDto
+                    {
+                        Id = v.Color.Id,
+                        Hex = v.Color.Hex,
+                        NameRu = v.Color.NameRu,
+                        NameEn = v.Color.NameEn
+                    },
                     Price = v.Price,
+                    SalePrice = v.SalePrice,
                     Stock = v.Stock,
                     ImageUrl = v.ImageUrl
                 }).ToList()
@@ -57,6 +65,7 @@ public class ProductsController : ControllerBase
     {
         var products = await _context.Products
             .Where(p => EF.Functions.ILike(p.Name, $"%{query}%"))
+            .OrderBy(p => p.Name)
             .Take(5)
             .Select(p => new ProductDto
             {
@@ -66,6 +75,18 @@ public class ProductsController : ControllerBase
                 Brand = p.Brand,
                 Variants = p.Variants.Select(v => new ProductVariantDto
                 {
+                    Id = v.Id,
+                    ColorId = v.ColorId,
+                    Color = new ColorDto
+                    {
+                        Id = v.Color.Id,
+                        Hex = v.Color.Hex,
+                        NameRu = v.Color.NameRu,
+                        NameEn = v.Color.NameEn
+                    },
+                    Price = v.Price,
+                    SalePrice = v.SalePrice,
+                    Stock = v.Stock,
                     ImageUrl = v.ImageUrl
                 }).ToList()
             })
@@ -95,12 +116,14 @@ public class ProductsController : ControllerBase
             }
 
             var basePrice = currentProduct.Variants.OrderBy(v => v.Price).First().Price;
-            const decimal priceRange = 2000;
+            const int priceRange = 2000;
 
             var similarProducts = await _context.Products
                 .Where(p => p.Id != id
-                    && p.CategoryId == currentProduct.CategoryId
-                    && p.Variants.Any(v => v.Price >= basePrice - priceRange && v.Price <= basePrice + priceRange))
+                            && p.CategoryId == currentProduct.CategoryId
+                            && p.Variants.Any(v =>
+                                v.Price >= basePrice - priceRange && v.Price <= basePrice + priceRange))
+                .OrderBy(p => p.Variants.Min(v => v.Price)) // Сортировка по минимальной цене варианта
                 .Take(4)
                 .Select(p => new ProductDto
                 {
@@ -115,8 +138,16 @@ public class ProductsController : ControllerBase
                         .Select(v => new ProductVariantDto
                         {
                             Id = v.Id,
-                            Color = v.Color,
+                            ColorId = v.ColorId,
+                            Color = new ColorDto
+                            {
+                                Id = v.Color.Id,
+                                Hex = v.Color.Hex,
+                                NameRu = v.Color.NameRu,
+                                NameEn = v.Color.NameEn
+                            },
                             Price = v.Price,
+                            SalePrice = v.SalePrice,
                             Stock = v.Stock,
                             ImageUrl = v.ImageUrl
                         }).ToList()
@@ -129,7 +160,8 @@ public class ProductsController : ControllerBase
             {
                 var additionalProducts = await _context.Products
                     .Where(p => p.Id != id && p.CategoryId == currentProduct.CategoryId
-                        && !similarProducts.Select(sp => sp.Id).Contains(p.Id))
+                                           && !similarProducts.Select(sp => sp.Id).Contains(p.Id))
+                    .OrderBy(p => p.Variants.Min(v => v.Price)) // Сортировка по минимальной цене
                     .Take(4 - similarCount)
                     .Select(p => new ProductDto
                     {
@@ -144,8 +176,16 @@ public class ProductsController : ControllerBase
                             .Select(v => new ProductVariantDto
                             {
                                 Id = v.Id,
-                                Color = v.Color,
+                                ColorId = v.ColorId,
+                                Color = new ColorDto
+                                {
+                                    Id = v.Color.Id,
+                                    Hex = v.Color.Hex,
+                                    NameRu = v.Color.NameRu,
+                                    NameEn = v.Color.NameEn
+                                },
                                 Price = v.Price,
+                                SalePrice = v.SalePrice,
                                 Stock = v.Stock,
                                 ImageUrl = v.ImageUrl
                             }).ToList()
@@ -159,7 +199,8 @@ public class ProductsController : ControllerBase
                     var extraNeeded = 4 - similarProducts.Count;
                     var extraProducts = await _context.Products
                         .Where(p => p.CategoryId == currentProduct.CategoryId
-                            && !similarProducts.Select(sp => sp.Id).Contains(p.Id))
+                                    && !similarProducts.Select(sp => sp.Id).Contains(p.Id))
+                        .OrderBy(p => p.Variants.Min(v => v.Price)) // Сортировка по минимальной цене
                         .Take(extraNeeded)
                         .Select(p => new ProductDto
                         {
@@ -174,8 +215,16 @@ public class ProductsController : ControllerBase
                                 .Select(v => new ProductVariantDto
                                 {
                                     Id = v.Id,
-                                    Color = v.Color,
+                                    ColorId = v.ColorId,
+                                    Color = new ColorDto
+                                    {
+                                        Id = v.Color.Id,
+                                        Hex = v.Color.Hex,
+                                        NameRu = v.Color.NameRu,
+                                        NameEn = v.Color.NameEn
+                                    },
                                     Price = v.Price,
+                                    SalePrice = v.SalePrice,
                                     Stock = v.Stock,
                                     ImageUrl = v.ImageUrl
                                 }).ToList()

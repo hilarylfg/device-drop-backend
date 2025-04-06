@@ -16,6 +16,7 @@ public static class SeedData
 
             await SeedUsers.SeedAsync(context);
             await SeedCategories.SeedAsync(context);
+            await SeedColors.SeedAsync(context);
             await SeedProducts.SeedAsync(context);
 
             Console.WriteLine("Сидирование завершено успешно!");
@@ -33,7 +34,9 @@ public static class SeedData
         await context.Database.ExecuteSqlRawAsync("TRUNCATE TABLE \"Categories\" RESTART IDENTITY CASCADE;");
         await context.Database.ExecuteSqlRawAsync("TRUNCATE TABLE \"Products\" RESTART IDENTITY CASCADE;");
         await context.Database.ExecuteSqlRawAsync("TRUNCATE TABLE \"ProductVariants\" RESTART IDENTITY CASCADE;");
+        await context.Database.ExecuteSqlRawAsync("TRUNCATE TABLE \"Colors\" RESTART IDENTITY CASCADE;");
         await context.Database.ExecuteSqlRawAsync("TRUNCATE TABLE \"Carts\" RESTART IDENTITY CASCADE;");
         await context.Database.ExecuteSqlRawAsync("TRUNCATE TABLE \"CartItems\" RESTART IDENTITY CASCADE;");
+        await context.Database.ExecuteSqlRawAsync("TRUNCATE TABLE \"VerificationCodes\" RESTART IDENTITY CASCADE;");
     }
 }
