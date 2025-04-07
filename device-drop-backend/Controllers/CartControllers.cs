@@ -21,6 +21,7 @@ public class CartController : ControllerBase
         try
         {
             string token = Request.Cookies["cartToken"];
+
             if (string.IsNullOrEmpty(token))
             {
                 return Ok(new CartDto { TotalAmount = 0, Items = new List<CartItemDto>() });
@@ -45,11 +46,22 @@ public class CartController : ControllerBase
                 {
                     Id = i.Id,
                     Quantity = i.Quantity,
-                    ProductVariant = new ProductVariantDto
+                    ProductVariant = new ProductVariantDtoForCart
                     {
                         Id = i.ProductVariant.Id,
                         Price = i.ProductVariant.Price,
-                        ImageUrl = i.ProductVariant.ImageUrl
+                        SalePrice = i.ProductVariant.SalePrice,
+                        Stock = i.ProductVariant.Stock,
+                        ImageUrl = i.ProductVariant.ImageUrl,
+                        ColorId = i.ProductVariant.ColorId,
+                        Product = new ProductDtoForCart
+                        {
+                            Id = i.ProductVariant.Product.Id,
+                            Name = i.ProductVariant.Product.Name,
+                            Description = i.ProductVariant.Product.Description,
+                            Brand = i.ProductVariant.Product.Brand,
+                            CategoryId = i.ProductVariant.Product.CategoryId
+                        }
                     }
                 }).ToList()
             };
@@ -63,13 +75,13 @@ public class CartController : ControllerBase
         }
     }
 
-    // POST: api/cart
     [HttpPost]
     public async Task<IActionResult> AddToCart([FromBody] CreateCartItemDto data)
     {
         try
         {
             string token = Request.Cookies["cartToken"];
+
             if (string.IsNullOrEmpty(token))
             {
                 token = Guid.NewGuid().ToString();
@@ -113,27 +125,39 @@ public class CartController : ControllerBase
                 {
                     Id = i.Id,
                     Quantity = i.Quantity,
-                    ProductVariant = new ProductVariantDto
+                    ProductVariant = new ProductVariantDtoForCart
                     {
                         Id = i.ProductVariant.Id,
                         Price = i.ProductVariant.Price,
-                        ImageUrl = i.ProductVariant.ImageUrl
+                        SalePrice = i.ProductVariant.SalePrice,
+                        Stock = i.ProductVariant.Stock,
+                        ImageUrl = i.ProductVariant.ImageUrl,
+                        ColorId = i.ProductVariant.ColorId,
+                        Product = new ProductDtoForCart
+                        {
+                            Id = i.ProductVariant.Product.Id,
+                            Name = i.ProductVariant.Product.Name,
+                            Description = i.ProductVariant.Product.Description,
+                            Brand = i.ProductVariant.Product.Brand,
+                            CategoryId = i.ProductVariant.Product.CategoryId
+                        }
                     }
                 }).ToList()
             };
 
             var response = Ok(cartDto);
-            if (Request.Cookies["cartToken"] == null)
+            if (string.IsNullOrEmpty(Request.Cookies["cartToken"]))
             {
                 Response.Cookies.Append("cartToken", token, new CookieOptions
                 {
                     HttpOnly = true,
-                    Secure = true, // Используйте true, если используете HTTPS
+                    Secure = false, 
                     MaxAge = TimeSpan.FromDays(2),
                     Path = "/",
-                    SameSite = SameSiteMode.Strict
+                    SameSite = SameSiteMode.Lax,
                 });
             }
+
             return response;
         }
         catch (Exception ex)
@@ -179,11 +203,22 @@ public class CartController : ControllerBase
                 {
                     Id = i.Id,
                     Quantity = i.Quantity,
-                    ProductVariant = new ProductVariantDto
+                    ProductVariant = new ProductVariantDtoForCart
                     {
                         Id = i.ProductVariant.Id,
                         Price = i.ProductVariant.Price,
-                        ImageUrl = i.ProductVariant.ImageUrl
+                        SalePrice = i.ProductVariant.SalePrice,
+                        Stock = i.ProductVariant.Stock,
+                        ImageUrl = i.ProductVariant.ImageUrl,
+                        ColorId = i.ProductVariant.ColorId,
+                        Product = new ProductDtoForCart
+                        {
+                            Id = i.ProductVariant.Product.Id,
+                            Name = i.ProductVariant.Product.Name,
+                            Description = i.ProductVariant.Product.Description,
+                            Brand = i.ProductVariant.Product.Brand,
+                            CategoryId = i.ProductVariant.Product.CategoryId
+                        }
                     }
                 }).ToList()
             };
@@ -233,11 +268,22 @@ public class CartController : ControllerBase
                 {
                     Id = i.Id,
                     Quantity = i.Quantity,
-                    ProductVariant = new ProductVariantDto
+                    ProductVariant = new ProductVariantDtoForCart
                     {
                         Id = i.ProductVariant.Id,
                         Price = i.ProductVariant.Price,
-                        ImageUrl = i.ProductVariant.ImageUrl
+                        SalePrice = i.ProductVariant.SalePrice,
+                        Stock = i.ProductVariant.Stock,
+                        ImageUrl = i.ProductVariant.ImageUrl,
+                        ColorId = i.ProductVariant.ColorId,
+                        Product = new ProductDtoForCart
+                        {
+                            Id = i.ProductVariant.Product.Id,
+                            Name = i.ProductVariant.Product.Name,
+                            Description = i.ProductVariant.Product.Description,
+                            Brand = i.ProductVariant.Product.Brand,
+                            CategoryId = i.ProductVariant.Product.CategoryId
+                        }
                     }
                 }).ToList()
             };
@@ -253,27 +299,48 @@ public class CartController : ControllerBase
 
     private async Task<Cart> FindOrCreateCart(string token)
     {
-        var cart = await _context.Carts.FirstOrDefaultAsync(c => c.Token == token);
-        if (cart == null)
-        {
-            cart = new Cart { Token = token, TotalAmount = 0 };
-            _context.Carts.Add(cart);
-            await _context.SaveChangesAsync();
-        }
-        return cart;
-    }
-
-    private async Task UpdateCartTotalAmount(string token)
-    {
-        var cart = await _context.Carts
-            .Include(c => c.Items)
-            .ThenInclude(i => i.ProductVariant)
+        var userCart = await _context.Carts
             .FirstOrDefaultAsync(c => c.Token == token);
 
-        if (cart != null)
+        if (userCart == null)
         {
-            cart.TotalAmount = cart.Items.Sum(i => i.Quantity * i.ProductVariant.Price);
+            userCart = new Cart { Token = token };
+            _context.Carts.Add(userCart);
             await _context.SaveChangesAsync();
         }
+
+        return userCart;
+    }
+
+    private async Task<Cart> UpdateCartTotalAmount(string token)
+    {
+        var userCart = await _context.Carts
+            .Include(c => c.Items.OrderByDescending(i => i.CreatedAt))
+            .ThenInclude(i => i.ProductVariant)
+            .ThenInclude(pv => pv.Product)
+            .FirstOrDefaultAsync(c => c.Token == token);
+
+        if (userCart == null)
+        {
+            return null;
+        }
+
+        var totalAmount = userCart.Items.Sum(i => CalcCartItemTotalPrice(i));
+
+        userCart.TotalAmount = totalAmount;
+        _context.Carts.Update(userCart);
+        await _context.SaveChangesAsync();
+
+        return await _context.Carts
+            .Include(c => c.Items.OrderByDescending(i => i.CreatedAt))
+            .ThenInclude(i => i.ProductVariant)
+            .ThenInclude(pv => pv.Product)
+            .FirstOrDefaultAsync(c => c.Token == token);
+        
+    }
+    
+    private int CalcCartItemTotalPrice(CartItem item)
+    {
+        return item.Quantity * (item.ProductVariant.SalePrice ?? item.ProductVariant.Price);
     }
 }
