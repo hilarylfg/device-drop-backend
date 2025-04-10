@@ -11,3 +11,8 @@ public class VerifyCodeDto
 {
     public string Code { get; set; }
 }
+
+public class VerifyTokenDto
+{
+    public string AuthToken { get; set; }
+}

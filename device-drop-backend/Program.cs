@@ -33,7 +33,7 @@ if (app.Environment.IsDevelopment())
     app.UseSwaggerUI();
 }
 
-// await SeedData.InitializeAsync(app.Services);
+await SeedData.InitializeAsync(app.Services);
 
 app.UseCors("AllowFrontend");
 app.MapControllers();

@@ -132,20 +132,58 @@ public class AuthController : ControllerBase
             return StatusCode(500, new { error = "Не удалось подтвердить код" });
         }
     }
+    
+    [HttpPost("verify-token")]
+        public IActionResult VerifyToken([FromBody] VerifyTokenDto dto)
+        {
+            try
+            {
+                var tokenHandler = new JwtSecurityTokenHandler();
+                var key = Encoding.UTF8.GetBytes(_jwtSecret);
+                tokenHandler.ValidateToken(dto.AuthToken, new TokenValidationParameters
+                {
+                    ValidateIssuerSigningKey = true,
+                    IssuerSigningKey = new SymmetricSecurityKey(key),
+                    ValidateIssuer = false,
+                    ValidateAudience = false,
+                    ClockSkew = TimeSpan.Zero
+                }, out SecurityToken validatedToken);
+    
+                var jwtToken = (JwtSecurityToken)validatedToken;
+                var userId = int.Parse(jwtToken.Claims.First(x => x.Type == "id").Value);
+    
+                var user = _context.Users.FirstOrDefault(u => u.Id == userId && u.Verified != null);
+                if (user == null)
+                {
+                    return Unauthorized(new { error = "Пользователь не найден или не верифицирован" });
+                }
+    
+                return Ok(new
+                {
+                    id = user.Id,
+                    email = user.Email,
+                    firstName = user.FirstName,
+                    role = user.Role
+                });
+            }
+            catch (Exception ex)
+            {
+                Console.WriteLine($"Error verifying token: {ex.Message}");
+                return Unauthorized(new { error = "Неверный токен" });
+            }
+        }
 
     private string GenerateJwtToken(User user)
     {
         var claims = new[]
         {
-            new Claim(ClaimTypes.NameIdentifier, user.Id.ToString()),
-            new Claim(ClaimTypes.Email, user.Email),
-            new Claim(ClaimTypes.GivenName, user.FirstName),
-            new Claim(ClaimTypes.Role, user.Role.ToString())
+            new Claim("id", user.Id.ToString()),
+            new Claim("email", user.Email),
+            new Claim("firstName", user.FirstName),
+            new Claim("role", user.Role.ToString())
         };
 
         var token = new JwtSecurityToken(
-            issuer: "your-issuer",
-            audience: "your-audience",
             claims: claims,
             expires: DateTime.UtcNow.AddMinutes(10),
             signingCredentials: new SigningCredentials(
