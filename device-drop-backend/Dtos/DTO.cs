@@ -5,7 +5,7 @@ public class CategoryDto
     public int Id { get; set; }
     public string Name { get; set; } = string.Empty;
     public string Link { get; set; } = string.Empty;
-    public List<ProductDto> Products { get; set; } = new List<ProductDto>();
+    public List<ProductDto>? Products { get; set; }
 }
 
 public class ProductDto
@@ -14,20 +14,21 @@ public class ProductDto
     public string Name { get; set; } = string.Empty;
     public string Description { get; set; } = string.Empty;
     public string Brand { get; set; } = string.Empty;
-    public int CategoryId { get; set; }
-    public CategoryDto Category { get; set; } = null!;
-    public List<ProductVariantDto> Variants { get; set; } = new List<ProductVariantDto>();
+    public int? CategoryId { get; set; }
+    public CategoryDto? Category { get; set; }
+    public List<ProductVariantDto>? Variants { get; set; }
 }
 
 public class ProductVariantDto
 {
     public int Id { get; set; }
     public int ColorId { get; set; }
-    public ColorDto Color { get; set; } = null!;
+    public ColorDto? Color { get; set; }
     public int Price { get; set; }
     public int? SalePrice { get; set; }
     public int Stock { get; set; }
     public string ImageUrl { get; set; } = string.Empty;
+    public ProductDto? Product { get; set; }
 }
 
 public class ColorDto

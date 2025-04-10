@@ -1,5 +1,6 @@
 ﻿using device_drop_backend.Data;
 using device_drop_backend.Dtos;
+using device_drop_backend.Models;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
 
@@ -19,8 +20,7 @@ public class CategoryController : ControllerBase
     [HttpGet]
     public async Task<IActionResult> GetCategories()
     {
-        var categories = await _context.Categories.ToListAsync();
-        return Ok(categories);
+        return Ok(await _context.Categories.ToListAsync());
     }
 
     [HttpGet("with-products")]
@@ -29,38 +29,43 @@ public class CategoryController : ControllerBase
         var categories = await _context.Categories
             .Include(c => c.Products)
             .ThenInclude(p => p.Variants)
-            .ThenInclude(v => v.Color) 
-            .Select(c => new CategoryDto
-            {
-                Id = c.Id,
-                Name = c.Name,
-                Link = c.Link,
-                Products = c.Products.Select(p => new ProductDto
-                {
-                    Id = p.Id,
-                    Name = p.Name,
-                    Description = p.Description,
-                    Brand = p.Brand,
-                    Variants = p.Variants.Select(v => new ProductVariantDto
-                    {
-                        Id = v.Id,
-                        ColorId = v.ColorId,
-                        Color = new ColorDto
-                        {
-                            Id = v.Color.Id,
-                            Hex = v.Color.Hex,
-                            NameRu = v.Color.NameRu,
-                            NameEn = v.Color.NameEn
-                        },
-                        Price = v.Price,
-                        SalePrice = v.SalePrice,
-                        Stock = v.Stock,
-                        ImageUrl = v.ImageUrl
-                    }).ToList()
-                }).ToList()
-            })
+            .ThenInclude(v => v.Color)
             .ToListAsync();
 
-        return Ok(categories);
+        var categoryDtos = categories.Select(MapToCategoryDto).ToList();
+        return Ok(categoryDtos);
+    }
+
+    private CategoryDto MapToCategoryDto(Category c)
+    {
+        return new CategoryDto
+        {
+            Id = c.Id,
+            Name = c.Name,
+            Link = c.Link,
+            Products = c.Products.Select(p => new ProductDto
+            {
+                Id = p.Id,
+                Name = p.Name,
+                Description = p.Description,
+                Brand = p.Brand,
+                Variants = p.Variants.Select(v => new ProductVariantDto
+                {
+                    Id = v.Id,
+                    ColorId = v.ColorId,
+                    Color = new ColorDto
+                    {
+                        Id = v.Color.Id,
+                        Hex = v.Color.Hex,
+                        NameRu = v.Color.NameRu,
+                        NameEn = v.Color.NameEn
+                    },
+                    Price = v.Price,
+                    SalePrice = v.SalePrice,
+                    Stock = v.Stock,
+                    ImageUrl = v.ImageUrl
+                }).ToList()
+            }).ToList()
+        };
     }
 }
