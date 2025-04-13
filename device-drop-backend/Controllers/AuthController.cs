@@ -23,6 +23,39 @@ public class AuthController : ControllerBase
         _emailService = emailService;
         _jwtSecret = configuration["Jwt:Secret"] ?? "your-secret-key";
     }
+    
+    [HttpGet("me")]
+    public async Task<IActionResult> GetCurrentUser()
+    {
+        var token = Request.Cookies["next-auth.session-token"];
+        if (string.IsNullOrEmpty(token))
+        {
+            return Unauthorized(new { error = "Вы не авторизованы" });
+        }
+
+        var jwtToken = ValidateJwtToken(token);
+        if (jwtToken == null)
+        {
+            return Unauthorized(new { error = "Неверный токен" });
+        }
+
+        var userId = int.Parse(jwtToken.Claims.First(x => x.Type == "id").Value);
+        var user = await _context.Users
+            .FirstOrDefaultAsync(u => u.Id == userId && u.Verified != null);
+
+        if (user == null)
+        {
+            return Unauthorized(new { error = "Пользователь не найден или не верифицирован" });
+        }
+
+        return Ok(new
+        {
+            id = user.Id,
+            email = user.Email,
+            firstName = user.FirstName,
+            role = user.Role.ToString()
+        });
+    }
 
     [HttpPost("login")]
     public async Task<IActionResult> Login([FromBody] LoginDto dto)

@@ -24,107 +24,134 @@ public class CartController : ControllerBase
     }
 
     [HttpPost]
-    public async Task<IActionResult> AddToCart([FromBody] CreateCartItemDto data)
+    public async Task<IActionResult> AddToCart([FromBody] CreateCartItemDto dto)
     {
         var token = Request.Cookies["cartToken"] ?? Guid.NewGuid().ToString();
         var cart = await FindOrCreateCart(token);
 
-        var cartItem = await _context.CartItems
-            .FirstOrDefaultAsync(ci => ci.CartId == cart.Id && ci.ProductVariantId == data.ProductVariantId);
+        var productVariant = await _context.ProductVariants.FindAsync(dto.ProductVariantId);
+        if (productVariant == null)
+        {
+            return NotFound(new { error = "Вариант продукта не найден" });
+        }
 
+        var cartItem = cart.Items.FirstOrDefault(ci => ci.ProductVariantId == dto.ProductVariantId);
         if (cartItem != null)
         {
             cartItem.Quantity++;
         }
         else
         {
-            cartItem = new CartItem { CartId = cart.Id, ProductVariantId = data.ProductVariantId, Quantity = 1 };
+            cartItem = new CartItem
+            {
+                CartId = cart.Id,
+                ProductVariantId = dto.ProductVariantId,
+                Quantity = 1,
+            };
             _context.CartItems.Add(cartItem);
         }
 
+        cart.TotalAmount = cart.Items.Sum(i => i.Quantity * (i.ProductVariant.SalePrice ?? i.ProductVariant.Price));
         await _context.SaveChangesAsync();
-        var updatedCart = await UpdateCartTotalAmount(token);
 
-        if (string.IsNullOrEmpty(Request.Cookies["cartToken"]))
-        {
-            Response.Cookies.Append("cartToken", token, new CookieOptions
-            {
-                HttpOnly = true,
-                Secure = false,
-                MaxAge = TimeSpan.FromDays(2),
-                Path = "/",
-                SameSite = SameSiteMode.Lax
-            });
-        }
-
-        return Ok(MapToCartDto(updatedCart));
+        SetCartCookie(token);
+        return Ok(MapToCartDto(cart));
     }
 
     [HttpPatch("{id}")]
-    public async Task<IActionResult> UpdateCartItem(int id, [FromBody] UpdateCartItemDto data)
+    public async Task<IActionResult> UpdateCartItem(int id, [FromBody] UpdateCartItemDto dto)
     {
         var token = Request.Cookies["cartToken"];
-        if (string.IsNullOrEmpty(token)) return BadRequest(new { error = "Cart token not found" });
+        if (string.IsNullOrEmpty(token))
+        {
+            return BadRequest(new { error = "Токен корзины не найден" });
+        }
 
-        var cartItem = await _context.CartItems.FindAsync(id);
-        if (cartItem == null) return NotFound(new { error = "Cart item not found" });
+        var cart = await GetCartByToken(token);
+        var cartItem = cart.Items.FirstOrDefault(ci => ci.Id == id);
+        if (cartItem == null)
+        {
+            return NotFound(new { error = "Товар не найден в корзине" });
+        }
 
-        cartItem.Quantity = data.Quantity;
+        if (dto.Quantity <= 0)
+        {
+            _context.CartItems.Remove(cartItem);
+        }
+        else
+        {
+            cartItem.Quantity = dto.Quantity;
+        }
+
+        cart.TotalAmount = cart.Items.Sum(i => i.Quantity * (i.ProductVariant.SalePrice ?? i.ProductVariant.Price));
         await _context.SaveChangesAsync();
-        var updatedCart = await UpdateCartTotalAmount(token);
 
-        return Ok(MapToCartDto(updatedCart));
+        return Ok(MapToCartDto(cart));
     }
 
     [HttpDelete("{id}")]
     public async Task<IActionResult> DeleteCartItem(int id)
     {
         var token = Request.Cookies["cartToken"];
-        if (string.IsNullOrEmpty(token)) return BadRequest(new { error = "Cart token not found" });
+        if (string.IsNullOrEmpty(token))
+        {
+            return BadRequest(new { error = "Токен корзины не найден" });
+        }
 
-        var cartItem = await _context.CartItems.FindAsync(id);
-        if (cartItem == null) return NotFound(new { error = "Cart item not found" });
+        var cart = await GetCartByToken(token);
+        var cartItem = cart.Items.FirstOrDefault(ci => ci.Id == id);
+        if (cartItem == null)
+        {
+            return NotFound(new { error = "Товар не найден в корзине" });
+        }
 
         _context.CartItems.Remove(cartItem);
+        cart.TotalAmount = cart.Items.Sum(i => i.Quantity * (i.ProductVariant.SalePrice ?? i.ProductVariant.Price));
         await _context.SaveChangesAsync();
-        var updatedCart = await UpdateCartTotalAmount(token);
 
-        return Ok(MapToCartDto(updatedCart));
+        return Ok(MapToCartDto(cart));
     }
 
     private async Task<Cart> FindOrCreateCart(string token)
     {
         var cart = await _context.Carts.FirstOrDefaultAsync(c => c.Token == token);
-        if (cart == null)
+        if (cart != null)
         {
-            cart = new Cart { Token = token };
-            _context.Carts.Add(cart);
-            await _context.SaveChangesAsync();
+            return cart;
         }
 
-        return cart;
-    }
-
-    private async Task<Cart> UpdateCartTotalAmount(string token)
-    {
-        var cart = await GetCartByToken(token);
-        if (cart == null) return null;
-
-        cart.TotalAmount = cart.Items.Sum(i => i.Quantity * (i.ProductVariant.SalePrice ?? i.ProductVariant.Price));
+        cart = new Cart { Token = token, TotalAmount = 0, Items = [] };
+        _context.Carts.Add(cart);
         await _context.SaveChangesAsync();
-        return await GetCartByToken(token);
+        return cart;
     }
 
     private async Task<Cart> GetCartByToken(string token)
     {
         if (string.IsNullOrEmpty(token))
+        {
             return new Cart { TotalAmount = 0, Items = [] };
+        }
 
-        return await _context.Carts
-            .Include(c => c.Items.OrderByDescending(i => i.CreatedAt))
+        var cart = await _context.Carts
+            .Include(c => c.Items.OrderByDescending(i => i.CreatedAt))  
             .ThenInclude(i => i.ProductVariant)
-            .ThenInclude(pv => pv.Product) 
-            .FirstOrDefaultAsync(c => c.Token == token) ?? new Cart { TotalAmount = 0, Items = [] };
+            .ThenInclude(pv => pv.Product)
+            .FirstOrDefaultAsync(c => c.Token == token);
+
+        return cart ?? new Cart { TotalAmount = 0, Items = [] };
+    }
+
+    private void SetCartCookie(string token)
+    {
+        Response.Cookies.Append("cartToken", token, new CookieOptions
+        {
+            HttpOnly = true,
+            Secure = false,  
+            MaxAge = TimeSpan.FromDays(2),
+            Path = "/",
+            SameSite = SameSiteMode.Lax
+        });
     }
 
     private CartDto MapToCartDto(Cart cart)
@@ -143,19 +170,18 @@ public class CartController : ControllerBase
                     Price = i.ProductVariant.Price,
                     SalePrice = i.ProductVariant.SalePrice,
                     Stock = i.ProductVariant.Stock,
-                    ImageUrl = i.ProductVariant.ImageUrl,
+                    ImageUrl = i.ProductVariant.ImageUrl ?? string.Empty,
                     ColorId = i.ProductVariant.ColorId,
-           
-                    Product = new ProductDto
+                    Product = i.ProductVariant.Product != null ? new ProductDto
                     {
                         Id = i.ProductVariant.Product.Id,
-                        Name = i.ProductVariant.Product.Name,
-                        Description = i.ProductVariant.Product.Description,
-                        Brand = i.ProductVariant.Product.Brand,
+                        Name = i.ProductVariant.Product.Name ?? string.Empty,
+                        Description = i.ProductVariant.Product.Description ?? string.Empty,
+                        Brand = i.ProductVariant.Product.Brand ?? string.Empty,
                         CategoryId = i.ProductVariant.Product.CategoryId
-                    }
+                    } : null
                 }
             }).ToList()
         };
     }
-}   
+}
