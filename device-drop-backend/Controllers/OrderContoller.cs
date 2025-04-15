@@ -5,6 +5,7 @@ using device_drop_backend.Data;
 using device_drop_backend.Dtos;
 using device_drop_backend.Models;
 using device_drop_backend.Services;
+using Microsoft.AspNetCore.Mvc.ModelBinding;
 
 [Route("api/[controller]")]
 [ApiController]
@@ -130,18 +131,33 @@ public class OrderController : ControllerBase
     }
 
     [HttpPost("checkout/callback")]
-    public async Task<IActionResult> CheckoutCallback([FromBody] PaymentCallbackData callbackData)
+    public async Task<IActionResult> CheckoutCallback([FromBody, BindRequired] PaymentCallbackData callbackData)
     {
         try
         {
-            if (callbackData == null ||
-                callbackData.Type != "notification" ||
-                callbackData.Event == null ||
-                callbackData.Object == null ||
-                callbackData.Object.Metadata == null ||
-                string.IsNullOrEmpty(callbackData.Object.Metadata.OrderId))
+            if (callbackData == null)
             {
-                return BadRequest(new { error = "Invalid callback data" });
+                return BadRequest(new { error = "Callback data is null" });
+            }
+
+            if (callbackData.Type != "notification")
+            {
+                return BadRequest(new { error = "Invalid type" });
+            }
+
+            if (callbackData.Object == null)
+            {
+                return BadRequest(new { error = "Object is null" });
+            }
+
+            if (callbackData.Object.Metadata == null)
+            {
+                return BadRequest(new { error = "Metadata is null" });
+            }
+
+            if (string.IsNullOrEmpty(callbackData.Object.Metadata.OrderId))
+            {
+                return BadRequest(new { error = "OrderId is null or empty" });
             }
 
             var orderId = int.Parse(callbackData.Object.Metadata.OrderId);
