@@ -241,10 +241,25 @@ public class AuthController : ControllerBase
 
     private async Task SendVerificationEmail(string email, string code)
     {
+        var verificationUrl = $"http://localhost:3000/verify?code={code}";
+        var emailBody = $@"
+            <html>
+            <body style='font-family: Arial, sans-serif; line-height: 1.6;'>
+                <h2>DeviceDrop / 📝 Подтверждение регистрации</h2>
+                <p>Спасибо за регистрацию в DeviceDrop!</p>
+                <p>Ваш код подтверждения: <strong>{code}</strong></p>
+                <p>Или перейдите по ссылке для автоматической верификации:</p>
+                <a href='{verificationUrl}' style='background-color: #28a745; color: white; padding: 10px 20px; text-decoration: none; border-radius: 5px;'>Подтвердить аккаунт</a>
+                <p>Код действителен 2 часа.</p>
+                <p>Если у вас есть вопросы, свяжитесь с нами: support@devicedrop.ru</p>
+            </body>
+            </html>";
+
         await _emailService.SendEmailAsync(
             email,
             "DeviceDrop / 📝 Подтверждение регистрации",
-            $"Ваш код: {code}\nhttp://localhost:3000/verify?code={code}"
+            emailBody,
+            isHtml: true
         );
     }
 }
