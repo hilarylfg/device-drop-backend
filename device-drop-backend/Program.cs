@@ -8,7 +8,6 @@ var builder = WebApplication.CreateBuilder(args);
 builder.Services.AddDbContext<AppDbContext>(options =>
     options.UseNpgsql(builder.Configuration.GetConnectionString("DefaultConnection")));
 
-builder.Services.AddTransient<IEmailService, EmailService>();
 builder.Services.AddHttpClient<IPaymentService, YooKassaPaymentService>();
 builder.Services.AddTransient<IEmailService, EmailService>(); 
 builder.Services.AddSwaggerGen();

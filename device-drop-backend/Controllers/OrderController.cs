@@ -5,7 +5,6 @@ using device_drop_backend.Data;
 using device_drop_backend.Dtos;
 using device_drop_backend.Models;
 using device_drop_backend.Services;
-using Microsoft.AspNetCore.Mvc.ModelBinding;
 
 [Route("api/[controller]")]
 [ApiController]
@@ -131,85 +130,69 @@ public class OrderController : ControllerBase
     }
 
     [HttpPost("checkout/callback")]
-    public async Task<IActionResult> CheckoutCallback([FromBody, BindRequired] PaymentCallbackData callbackData)
+    public async Task<IActionResult> Callback()
     {
+        using var reader = new StreamReader(Request.Body);
+        var body = await reader.ReadToEndAsync();
+
+        PaymentCallbackData? data;
+
         try
         {
-            if (callbackData == null)
+            data = JsonConvert.DeserializeObject<PaymentCallbackData>(body);
+            if (data == null || data.Object == null)
+                return BadRequest("Invalid data");
+        }
+        catch (Exception ex)
+        {
+            return BadRequest("Ошибка JSON");
+        }
+        
+        var orderId = data.Object.Metadata?.OrderId;
+
+        if (string.IsNullOrEmpty(orderId))
+            return BadRequest("order_id не найден");
+
+        var order = await _context.Orders.FirstOrDefaultAsync(o => o.Id.ToString() == orderId);
+        if (order == null)
+        {
+            return NotFound(new { error = "Order not found" });
+        }
+
+        order.Status = OrderStatus.SUCCEEDED;
+        var isSucceeded = order.Status == OrderStatus.SUCCEEDED;
+        var items = JsonConvert.DeserializeObject<OrderCartItemDTO[]>(order.Items);
+        await _context.SaveChangesAsync();
+        
+        try
+        {
+            if (isSucceeded)
             {
-                return BadRequest(new { error = "Callback data is null" });
+                var successEmailBody = GenerateSuccessEmail(order.Id, items);
+                await _emailService.SendEmailAsync(
+                    order.Email,
+                    $"DeviceDrop / Ваш заказ #{order.Id} успешно оформлен 🎉",
+                    successEmailBody,
+                    isHtml: true
+                );
             }
-
-            if (callbackData.Type != "notification")
+            else
             {
-                return BadRequest(new { error = "Invalid type" });
+                var cancelledEmailBody = GenerateCancelledEmail(order.Id);
+                await _emailService.SendEmailAsync(
+                    order.Email,
+                    $"DeviceDrop / Оплата заказа #{order.Id} не удалась",
+                    cancelledEmailBody,
+                    isHtml: true
+                );
             }
-
-            if (callbackData.Object == null)
-            {
-                return BadRequest(new { error = "Object is null" });
-            }
-
-            if (callbackData.Object.Metadata == null)
-            {
-                return BadRequest(new { error = "Metadata is null" });
-            }
-
-            if (string.IsNullOrEmpty(callbackData.Object.Metadata.OrderId))
-            {
-                return BadRequest(new { error = "OrderId is null or empty" });
-            }
-
-            var orderId = int.Parse(callbackData.Object.Metadata.OrderId);
-            var order = await _context.Orders
-                .FirstOrDefaultAsync(o => o.Id == orderId);
-
-            if (order == null)
-            {
-                return NotFound(new { error = "Order not found" });
-            }
-
-            var isSucceeded = callbackData.Object.Status == "succeeded";
-            order.Status = isSucceeded ? OrderStatus.SUCCEEDED : OrderStatus.CANCELLED;
-
-            await _context.SaveChangesAsync();
-
-            var items = JsonConvert.DeserializeObject<OrderCartItemDTO[]>(order.Items);
-
-            try
-            {
-                if (isSucceeded)
-                {
-                    var successEmailBody = GenerateSuccessEmail(order.Id, items);
-                    await _emailService.SendEmailAsync(
-                        order.Email,
-                        $"DeviceDrop / Ваш заказ #{order.Id} успешно оформлен 🎉",
-                        successEmailBody,
-                        isHtml: true
-                    );
-                }
-                else
-                {
-                    var cancelledEmailBody = GenerateCancelledEmail(order.Id);
-                    await _emailService.SendEmailAsync(
-                        order.Email,
-                        $"DeviceDrop / Оплата заказа #{order.Id} не удалась",
-                        cancelledEmailBody,
-                        isHtml: true
-                    );
-                }
-            }
-            catch
-            {
-                // Игнорируем ошибку email
-            }
-
-            return Ok(new { success = true });
         }
         catch
         {
-            return StatusCode(500, new { error = "Server error" });
+            // Игнорируем ошибку email
         }
+
+        return Ok();
     }
 
     private string GeneratePendingEmail(int orderId, int totalAmount, string paymentUrl)
@@ -219,7 +202,7 @@ public class OrderController : ControllerBase
             <body style='font-family: Arial, sans-serif; line-height: 1.6;'>
                 <h2>Ваш заказ #{orderId} ждёт оплаты</h2>
                 <p>Спасибо за заказ в DeviceDrop!</p>
-                <p>Сумма: {totalAmount:F2} руб.</p>
+                <p>Сумма: {totalAmount} руб.</p>
                 <p>Для завершения оплаты перейдите по ссылке:</p>
                 <a href='{paymentUrl}' style='background-color: #28a745; color: white; padding: 10px 20px; text-decoration: none; border-radius: 5px;'>Оплатить заказ</a>
                 <p>Если у вас есть вопросы, свяжитесь с нами: support@devicedrop.ru</p>
