@@ -202,7 +202,7 @@ public class OrderController : ControllerBase
             <body style='font-family: Arial, sans-serif; line-height: 1.6;'>
                 <h2>Ваш заказ #{orderId} ждёт оплаты</h2>
                 <p>Спасибо за заказ в DeviceDrop!</p>
-                <p>Сумма: {totalAmount} руб.</p>
+                <p>Сумма: {totalAmount:F2} руб.</p>
                 <p>Для завершения оплаты перейдите по ссылке:</p>
                 <a href='{paymentUrl}' style='background-color: #28a745; color: white; padding: 10px 20px; text-decoration: none; border-radius: 5px;'>Оплатить заказ</a>
                 <p>Если у вас есть вопросы, свяжитесь с нами: support@devicedrop.ru</p>
@@ -213,7 +213,7 @@ public class OrderController : ControllerBase
     private string GenerateSuccessEmail(int orderId, OrderCartItemDTO[] items)
     {
         var itemsHtml = string.Join("", items.Select(i =>
-            $"<li>{i.Product.Name} (x{i.Quantity}) - {(i.Variant.SalePrice ?? i.Variant.Price) / 100.0:F2} руб.</li>"));
+            $"<li>{i.Product.Name} (x{i.Quantity}) - {(i.Variant.SalePrice ?? i.Variant.Price):F2} руб.</li>"));
 
         return $@"
             <html>
