@@ -16,6 +16,10 @@ public class AuthController : ControllerBase
     private readonly AppDbContext _context;
     private readonly IEmailService _emailService;
     private readonly string _jwtSecret;
+    private readonly string _tokenCookieName = "auth_token";
+    private readonly string _refreshTokenCookieName = "refresh_token";
+    private readonly TimeSpan _tokenExpiration = TimeSpan.FromDays(1);
+    private readonly TimeSpan _refreshTokenExpiration = TimeSpan.FromDays(30);
 
     public AuthController(AppDbContext context, IEmailService emailService, IConfiguration configuration)
     {
@@ -27,7 +31,7 @@ public class AuthController : ControllerBase
     [HttpGet("me")]
     public async Task<IActionResult> GetCurrentUser()
     {
-        var token = Request.Cookies["next-auth.session-token"];
+        var token = Request.Cookies[_tokenCookieName];
         if (string.IsNullOrEmpty(token))
         {
             return Unauthorized(new { error = "Вы не авторизованы" });
@@ -67,7 +71,11 @@ public class AuthController : ControllerBase
         }
 
         var authToken = GenerateJwtToken(user);
-        return Ok(new { authToken, id = user.Id, email = user.Email, firstName = user.FirstName, role = user.Role });
+        var refreshToken = GenerateRefreshToken(user);
+        
+        SetAuthCookies(authToken, refreshToken);
+
+        return Ok(new { authToken });
     }
 
     [HttpPost("register")]
@@ -134,6 +142,10 @@ public class AuthController : ControllerBase
         }
 
         var authToken = GenerateJwtToken(user);
+        var refreshToken = GenerateRefreshToken(user);
+        
+        SetAuthCookies(authToken, refreshToken);
+
         return Ok(new { authToken, id = user.Id, email = user.Email, firstName = user.FirstName, role = user.Role });
     }
 
@@ -157,7 +169,11 @@ public class AuthController : ControllerBase
         await _context.SaveChangesAsync();
 
         Response.Cookies.Delete("verification_token");
+        
         var authToken = GenerateJwtToken(user);
+        var refreshToken = GenerateRefreshToken(user);
+        
+        SetAuthCookies(authToken, refreshToken);
 
         return Ok(new { success = true, authToken });
     }
@@ -165,9 +181,11 @@ public class AuthController : ControllerBase
     [HttpPost("verify-token")]
     public IActionResult VerifyToken([FromBody] VerifyTokenDto dto)
     {
-        if (string.IsNullOrEmpty(dto.AuthToken)) return BadRequest(new { error = "Токен не предоставлен" });
+        string tokenToVerify = dto.AuthToken ?? Request.Cookies[_tokenCookieName];
+        
+        if (string.IsNullOrEmpty(tokenToVerify)) return BadRequest(new { error = "Токен не предоставлен" });
 
-        var jwtToken = ValidateJwtToken(dto.AuthToken);
+        var jwtToken = ValidateJwtToken(tokenToVerify);
         if (jwtToken == null) return Unauthorized(new { error = "Неверный токен" });
 
         var userId = int.Parse(jwtToken.Claims.First(x => x.Type == "id").Value);
@@ -176,6 +194,45 @@ public class AuthController : ControllerBase
         return user == null
             ? Unauthorized(new { error = "Пользователь не найден или не верифицирован" })
             : Ok(new { id = user.Id, email = user.Email, firstName = user.FirstName, role = user.Role });
+    }
+
+    [HttpPost("refresh-token")]
+    public async Task<IActionResult> RefreshToken()
+    {
+        var refreshToken = Request.Cookies[_refreshTokenCookieName];
+        if (string.IsNullOrEmpty(refreshToken))
+        {
+            return Unauthorized(new { error = "Refresh токен отсутствует" });
+        }
+
+        var jwtToken = ValidateJwtToken(refreshToken);
+        if (jwtToken == null)
+        {
+            return Unauthorized(new { error = "Неверный refresh токен" });
+        }
+
+        var userId = int.Parse(jwtToken.Claims.First(x => x.Type == "id").Value);
+        var user = await _context.Users
+            .FirstOrDefaultAsync(u => u.Id == userId && u.Verified != null);
+
+        if (user == null)
+        {
+            return Unauthorized(new { error = "Пользователь не найден или не верифицирован" });
+        }
+
+        var newAuthToken = GenerateJwtToken(user);
+        var newRefreshToken = GenerateRefreshToken(user);
+        
+        SetAuthCookies(newAuthToken, newRefreshToken);
+
+        return Ok(new { authToken = newAuthToken });
+    }
+
+    [HttpPost("logout")]
+    public IActionResult Logout()
+    {
+        RemoveAuthCookies();
+        return Ok(new { message = "Выход из системы выполнен успешно" });
     }
 
     private string GenerateJwtToken(User user)
@@ -190,13 +247,72 @@ public class AuthController : ControllerBase
 
         var token = new JwtSecurityToken(
             claims: claims,
-            expires: DateTime.UtcNow.AddMinutes(10),
+            expires: DateTime.UtcNow.Add(_tokenExpiration),
             signingCredentials: new SigningCredentials(
                 new SymmetricSecurityKey(Encoding.UTF8.GetBytes(_jwtSecret)),
                 SecurityAlgorithms.HmacSha256)
         );
 
         return new JwtSecurityTokenHandler().WriteToken(token);
+    }
+
+    private string GenerateRefreshToken(User user)
+    {
+        var claims = new[]
+        {
+            new Claim("id", user.Id.ToString()),
+            new Claim("type", "refresh")
+        };
+
+        var token = new JwtSecurityToken(
+            claims: claims,
+            expires: DateTime.UtcNow.Add(_refreshTokenExpiration),
+            signingCredentials: new SigningCredentials(
+                new SymmetricSecurityKey(Encoding.UTF8.GetBytes(_jwtSecret)),
+                SecurityAlgorithms.HmacSha256)
+        );
+
+        return new JwtSecurityTokenHandler().WriteToken(token);
+    }
+
+    private void SetAuthCookies(string authToken, string refreshToken)
+    {
+        Response.Cookies.Append(_tokenCookieName, authToken, new CookieOptions
+        {
+            HttpOnly = true,
+            Secure = true, 
+            SameSite = SameSiteMode.Lax,
+            MaxAge = _tokenExpiration,
+            Path = "/"
+        });
+
+        Response.Cookies.Append(_refreshTokenCookieName, refreshToken, new CookieOptions
+        {
+            HttpOnly = true,
+            Secure = true,
+            SameSite = SameSiteMode.Lax,
+            MaxAge = _refreshTokenExpiration,
+            Path = "/"
+        });
+    }
+
+    private void RemoveAuthCookies()
+    {
+        Response.Cookies.Delete(_tokenCookieName, new CookieOptions
+        {
+            Path = "/",
+            Secure = true,
+            HttpOnly = true,
+            SameSite = SameSiteMode.Lax
+        });
+        
+        Response.Cookies.Delete(_refreshTokenCookieName, new CookieOptions
+        {
+            Path = "/",
+            Secure = true,
+            HttpOnly = true,
+            SameSite = SameSiteMode.Lax
+        });
     }
 
     private JwtSecurityToken? ValidateJwtToken(string token)
@@ -232,10 +348,10 @@ public class AuthController : ControllerBase
         Response.Cookies.Append("verification_token", sessionToken, new CookieOptions
         {
             HttpOnly = true,
-            Secure = false,
+            Secure = true,  
             MaxAge = TimeSpan.FromHours(2),
             Path = "/",
-            SameSite = SameSiteMode.Strict
+            SameSite = SameSiteMode.Lax
         });
     }
 
