@@ -75,7 +75,7 @@ public class AuthController : ControllerBase
         
         SetAuthCookies(authToken, refreshToken);
 
-        return Ok(new { authToken });
+        return Ok(new { authToken, id = user.Id});
     }
 
     [HttpPost("register")]
