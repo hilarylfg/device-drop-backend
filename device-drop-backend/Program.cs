@@ -9,7 +9,7 @@ builder.Services.AddDbContext<AppDbContext>(options =>
     options.UseNpgsql(builder.Configuration.GetConnectionString("DefaultConnection")));
 
 builder.Services.AddHttpClient<IPaymentService, YooKassaPaymentService>();
-builder.Services.AddTransient<IEmailService, EmailService>(); 
+builder.Services.AddTransient<IEmailService, EmailService>();
 builder.Services.AddSwaggerGen();
 builder.Services.AddControllers();
 
@@ -27,13 +27,10 @@ builder.Services.AddCors(options =>
 
 var app = builder.Build();
 
-if (app.Environment.IsDevelopment())
-{
-    app.UseSwagger();
-    app.UseSwaggerUI();
-}
+app.UseSwagger();
+app.UseSwaggerUI();
 
-// await SeedData.InitializeAsync(app.Services);
+await SeedData.InitializeAsync(app.Services);
 
 app.UseCors("AllowFrontend");
 app.MapControllers();
