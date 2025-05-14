@@ -88,10 +88,96 @@ public class ProductsController : ControllerBase
         return Ok(similarProductDtos);
     }
 
-    [HttpGet("length")]
-    public async Task<IActionResult> GetProductsLength()
+    [HttpGet("filtred")]
+    public async Task<IActionResult> GetFiltredProducts(
+        [FromQuery] string colors = null,
+        [FromQuery] string brands = null,
+        [FromQuery] bool availability = true,
+        [FromQuery] bool discount = false,
+        [FromQuery] decimal? priceFrom = null,
+        [FromQuery] decimal? priceTo = null)
     {
-        return Ok(await _context.Products.CountAsync());
+        var colorIds = colors?.Split(',').Where(s => !string.IsNullOrEmpty(s)).Select(int.Parse).ToList();
+        var brandList = brands?.Split(',').Where(s => !string.IsNullOrEmpty(s)).ToList();
+
+        var minPrice = priceFrom ?? 0;
+        var maxPrice = priceTo ?? 1000000;
+
+        var query = _context.Categories
+            .Include(c => c.Products)
+            .ThenInclude(p => p.Variants)
+            .ThenInclude(v => v.Color)
+            .AsQueryable();
+
+        var categories = await query.ToListAsync();
+
+        var result = categories.Select(c => new CategoryDto
+        {
+            Id = c.Id,
+            Name = c.Name,
+            Link = c.Link,
+            Products = c.Products
+                .Where(p =>
+                    (brandList == null || !brandList.Any() || brandList.Contains(p.Brand)) &&
+                  
+                    (colorIds == null || !colorIds.Any() || p.Variants.Any(v => colorIds.Contains(v.ColorId))) &&
+                   
+                    (!availability || p.Variants.Any(v => v.Stock > 0)) &&
+                    
+                    (!discount || p.Variants.Any(v => v.SalePrice.HasValue && v.SalePrice < v.Price)) &&
+                    
+                    p.Variants.Any(v => v.Price >= minPrice && v.Price <= maxPrice)
+                )
+                .OrderByDescending(p => p.Id)
+                .Select(p => MapToProductDto(p))
+                .ToList()
+        }).ToList();
+
+        result = result.Where(c => c.Products != null && c.Products.Any()).ToList();
+        var totalCount = result.Sum(c => c.Products?.Count ?? 0);
+
+        return Ok(new
+        {
+            Categories = result,
+            TotalCount = totalCount,
+        });
+    }
+    
+    [HttpGet("colors")]
+    public async Task<IActionResult> GetColors()
+    {
+        var colors = await _context.Colors
+            .OrderBy(c => c.Id)
+            .Select(c => new ColorDto
+            {
+                Id = c.Id,
+                Hex = c.Hex,
+                NameRu = c.NameRu,
+                NameEn = c.NameEn
+            })
+            .ToListAsync();
+
+        return Ok(colors);
+    }
+
+    [HttpGet("brands")]
+    public async Task<IActionResult> GetBrands()
+    {
+        var brandsWithIds = await _context.Products
+            .Where(p => !string.IsNullOrEmpty(p.Brand))
+            .Select(p => new { p.Brand, p.Id })
+            .Distinct()
+            .OrderBy(x => x.Id)
+            .ToListAsync();
+
+        var uniqueBrands = brandsWithIds
+            .GroupBy(x => x.Brand)
+            .Select(g => g.OrderBy(x => x.Id).First())
+            .OrderBy(x => x.Id)
+            .Select(x => new { Id = x.Brand, Name = x.Brand })
+            .ToList();
+
+        return Ok(uniqueBrands);
     }
 
     private ProductDto MapToProductDto(Product p)
@@ -102,23 +188,27 @@ public class ProductsController : ControllerBase
             Name = p.Name,
             Description = p.Description,
             Brand = p.Brand,
-            Category = p.Category != null ? new CategoryDto
-            {
-                Id = p.Category.Id,
-                Name = p.Category.Name,
-                Link = p.Category.Link
-            } : null,
+            Category = p.Category != null
+                ? new CategoryDto
+                {
+                    Id = p.Category.Id,
+                    Name = p.Category.Name,
+                    Link = p.Category.Link
+                }
+                : null,
             Variants = p.Variants?.Select(v => new ProductVariantDto
             {
                 Id = v.Id,
                 ColorId = v.ColorId,
-                Color = v.Color != null ? new ColorDto
-                {
-                    Id = v.Color.Id,
-                    Hex = v.Color.Hex,
-                    NameRu = v.Color.NameRu,
-                    NameEn = v.Color.NameEn
-                } : null,
+                Color = v.Color != null
+                    ? new ColorDto
+                    {
+                        Id = v.Color.Id,
+                        Hex = v.Color.Hex,
+                        NameRu = v.Color.NameRu,
+                        NameEn = v.Color.NameEn
+                    }
+                    : null,
                 Price = v.Price,
                 SalePrice = v.SalePrice,
                 Stock = v.Stock,

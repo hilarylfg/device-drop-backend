@@ -5,7 +5,7 @@ public class Order : BaseEntity
     public int Id { get; set; }
     public int? UserId { get; set; }
     public string Token { get; set; } = string.Empty;
-    public int TotalAmount { get; set; }
+    public decimal TotalAmount { get; set; }
     public OrderStatus Status { get; set; }
     public string? PaymentId { get; set; }
     public string Items { get; set; } = string.Empty;

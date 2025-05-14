@@ -195,7 +195,7 @@ public class OrderController : ControllerBase
         return Ok();
     }
 
-    private string GeneratePendingEmail(int orderId, int totalAmount, string paymentUrl)
+    private string GeneratePendingEmail(int orderId, decimal totalAmount, string paymentUrl)
     {
         return $@"
             <html>

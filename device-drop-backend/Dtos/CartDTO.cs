@@ -13,7 +13,7 @@ public class UpdateCartItemDto
 public class CartDto
 {
     public int Id { get; set; }
-    public int TotalAmount { get; set; }
+    public decimal TotalAmount { get; set; }
     public List<CartItemDto> Items { get; set; } = [];
 }
 
