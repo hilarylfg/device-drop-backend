@@ -128,7 +128,7 @@ public class ProductsController : ControllerBase
                     
                     p.Variants.Any(v => v.Price >= minPrice && v.Price <= maxPrice)
                 )
-                .OrderByDescending(p => p.Id)
+                .OrderBy(p => p.Id)
                 .Select(p => MapToProductDto(p))
                 .ToList()
         }).ToList();
